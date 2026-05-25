@@ -28,7 +28,7 @@ const THEMES = {
     btnActive: '#1a1f2e', btnBorder: '#1e2130', scrollTrack: '#0f1117', scrollThumb: '#2a2d3a',
     overlay: '#000000cc',
     // Chart
-    grid: '#1e2130',
+    chartBlue: '#3d7fff', grid: '#1e2130',
   },
   light: {
     // Surfaces
@@ -38,12 +38,12 @@ const THEMES = {
     // Text hierarchy
     text: '#1a1f2e', textSec: '#5a607a', textMuted: '#6b7280', textFaint: '#9ca3af', textLabel: '#6b7280',
     // Accents
-    blue: '#2b6ae0', blueSoft: '#4a8af5', green: '#38a85c', gold: '#d4a820', coral: '#e06040', error: '#d94040',
+    blue: '#2b6ae0', blueSoft: '#5d9cff', green: '#38a85c', gold: '#d4a820', coral: '#e06040', error: '#d94040',
     // UI
     btnActive: '#e0e8ff', btnBorder: '#c8d0e0', scrollTrack: '#f0f2f5', scrollThumb: '#c0c6d4',
     overlay: '#000000aa',
     // Chart
-    grid: '#c0c0c0',
+    chartBlue: '#1e5fd7', grid: '#c0c0c0',
   },
 };
 
@@ -65,7 +65,7 @@ const CARD_STYLE = (accentColor, prominent, T) => ({
 const CustomTooltip = ({ active, payload, T }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.text, fontFamily: FONT_MONO }}>
+    <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#c9cfe0', fontFamily: FONT_MONO }}>
       {payload.map((p, i) => (
         <div key={i}>
           <span style={{ color: p.color }}>{p.name}:</span>{' '}
@@ -150,12 +150,12 @@ function WeightChart({ data, entries, height, large, showDates, T }) {
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={40} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Scatter name="weight" dataKey="weight" fill={T.blue} opacity={0.5} r={large ? 4 : 3} />
+          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} opacity={0.5} r={large ? 4 : 3} />
           <Line name="trend" type="monotone" dataKey="trend" stroke={T.coral} strokeWidth={2} dot={false} strokeDasharray="4 2" />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blue }}>●</span> measured weight</span>
+        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue }}>●</span> measured weight</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.coral }}>— —</span> regression trend</span>
       </div>
     </>
@@ -185,13 +185,13 @@ function TdeeChart({ data, entries, result, recentResult, recentWeeks, height, l
             <ReferenceLine y={Math.round(recentResult.tdee)} stroke={T.green} strokeDasharray="4 2" strokeWidth={1.5}
               label={{ value: `${recentWeeks}w: ${Math.round(recentResult.tdee)}`, fill: T.green, fontSize: fs - 1, position: 'insideBottomRight' }} />
           )}
-          <Line name="raw 14d"      type="monotone" dataKey="tdeeRaw"    stroke={T.blue + '33'} strokeWidth={large ? 1.5 : 1}   dot={false} connectNulls />
+          <Line name="raw 14d"      type="monotone" dataKey="tdeeRaw"    stroke={T.chartBlue + '33'} strokeWidth={large ? 1.5 : 1}   dot={false} connectNulls />
           <Line name="EWA-smoothed" type="monotone" dataKey="tdeeEwa"    stroke={T.blueSoft}   strokeWidth={large ? 2 : 1.5}   dot={false} connectNulls />
           <Line name="drift trend"  type="monotone" dataKey="tdeeDrift"  stroke={T.green}   strokeWidth={large ? 3 : 2.5}   dot={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blue + '44' }}>—</span> raw 14d (noisy)</span>
+        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue + '44' }}>—</span> raw 14d (noisy)</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blueSoft }}>—</span> EWA-smoothed</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.green }}>—</span> drift trend (LOWESS)</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.coral }}>- -</span> full-period TDEE</span>
@@ -246,15 +246,15 @@ function MaCloudChart({ data, entries, unit, height, large, showDates, T }) {
         <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: showDates ? 8 : 4 }}>
           <defs>
             <linearGradient id="cloudGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={T.blue} stopOpacity={0.18} />
-              <stop offset="100%" stopColor={T.blue} stopOpacity={0.04} />
+              <stop offset="0%" stopColor={T.chartBlue} stopOpacity={0.18} />
+              <stop offset="100%" stopColor={T.chartBlue} stopOpacity={0.04} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={T.grid} />
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={40} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Scatter name="weight" dataKey="weight" fill={T.blue} opacity={0.2} r={large ? 3 : 2} />
+          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} opacity={0.2} r={large ? 3 : 2} />
           <Area type="monotone" dataKey="cloudHigh" stroke="none" fill="url(#cloudGrad)" legendType="none" dot={false} connectNulls />
           <Area type="monotone" dataKey="cloudLow"  stroke="none" fill={T.bg}            legendType="none" dot={false} connectNulls />
           <Line name="ma7"  type="monotone" dataKey="ma7"  stroke={T.green} strokeWidth={large ? 2.5 : 2} dot={false} connectNulls />
@@ -271,7 +271,7 @@ function MaCloudChart({ data, entries, unit, height, large, showDates, T }) {
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={46} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Bar  dataKey="cal"      fill={T.blue} opacity={0.10} name="daily kcal" />
+          <Bar  dataKey="cal"      fill={T.chartBlue} opacity={0.10} name="daily kcal" />
           <Line name="calAvg7"  type="monotone" dataKey="calAvg7"  stroke={T.blueSoft} strokeWidth={large ? 2 : 1.5} dot={false} connectNulls />
           <Line name="calAvg21" type="monotone" dataKey="calAvg21" stroke={T.gold} strokeWidth={large ? 2 : 1.5} dot={false} strokeDasharray="5 3" connectNulls />
         </ComposedChart>
@@ -334,10 +334,10 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
     return (
-      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.text, fontFamily: FONT_MONO }}>
+      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#c9cfe0', fontFamily: FONT_MONO }}>
         <div><span style={{ color: T.blueSoft }}>range:</span> {d.bucket}</div>
         <div><span style={{ color: T.blueSoft }}>avg Δweight:</span> {d.avgChange > 0 ? '+' : ''}{d.avgChange} {unit}</div>
-        <div><span style={{ color: T.textMuted }}>n days:</span> {d.count}</div>
+        <div><span style={{ color: '#8a8ea0' }}>n days:</span> {d.count}</div>
       </div>
     );
   };
@@ -346,7 +346,7 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
     if (!active || !payload?.length) return null;
     const d = payload[0]?.payload;
     return (
-      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.text, fontFamily: FONT_MONO }}>
+      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#c9cfe0', fontFamily: FONT_MONO }}>
         <div><span style={{ color: T.blueSoft }}>calories:</span> {d?.cal}</div>
         <div><span style={{ color: T.blueSoft }}>next-day Δweight:</span> {d?.wtChange > 0 ? '+' : ''}{d?.wtChange} {unit}</div>
       </div>
@@ -380,7 +380,7 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
               label={{ value: `TDEE≈${scatterReg.zeroCal}`, fill: T.gold + 'aa', fontSize: fs - 1, position: 'top' }} />
           )}
           <Tooltip content={<ScatterTooltip />} />
-          <Scatter data={scatterData} dataKey="wtChange" fill={T.blue} opacity={0.5} r={large ? 4 : 3} />
+          <Scatter data={scatterData} dataKey="wtChange" fill={T.chartBlue} opacity={0.5} r={large ? 4 : 3} />
           {scatterReg && (
             <Line data={scatterReg.lineData} type="linear" dataKey="regLine" stroke={T.coral} strokeWidth={2} dot={false} legendType="none" />
           )}
@@ -399,7 +399,7 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
           <ReferenceLine y={0} stroke={T.tooltipBorder} strokeWidth={1.5} />
           <Tooltip content={<BucketTooltip />} />
           <Bar dataKey="avgChange" radius={[3, 3, 0, 0]}
-            fill={T.blue}
+            fill={T.chartBlue}
             label={false}
           >
             {bucketData.map((d, i) => (
@@ -410,7 +410,7 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
       </ResponsiveContainer>
 
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blue }}>●</span> daily observation</span>
+        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue }}>●</span> daily observation</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.coral }}>—</span> regression line</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.gold }}>|</span> zero-crossing (TDEE)</span>
         <span style={{ fontSize: fs - 1, color: T.green }}>▮ loss band</span>
@@ -442,8 +442,8 @@ function RollingCorrelChart({ data, entries, unit, height, large, showDates, T }
     const cal = payload.find(p => p.dataKey === 'calAvg14');
     const dateStr = showDates ? fmtDate(label) : `Day ${label}`;
     return (
-      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.text, fontFamily: FONT_MONO }}>
-        <div style={{ color: T.textMuted, marginBottom: 4 }}>{dateStr}</div>
+      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#c9cfe0', fontFamily: FONT_MONO }}>
+        <div style={{ color: '#8a8ea0', marginBottom: 4 }}>{dateStr}</div>
         {wt  && <div><span style={{ color: wt.color  }}>7d avg weight:</span> {Number(wt.value).toFixed(2)} {unit}</div>}
         {cal && <div><span style={{ color: cal.color }}>14d avg kcal:</span>  {formatThousands(cal.value, unit)}</div>}
       </div>
@@ -558,9 +558,9 @@ function ConsistencyChart({ entries, height, large, showDates, T }) {
     if (!active || !payload?.length) return null;
     const d = payload[0]?.payload;
     return (
-      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.text, fontFamily: FONT_MONO }}>
+      <div style={{ background: T.tooltipBg, border: `1px solid ${T.tooltipBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#c9cfe0', fontFamily: FONT_MONO }}>
         <div><span style={{ color: T.blueSoft }}>day:</span> {d?.day}</div>
-        <div><span style={{ color: T.text }}>actual:</span> {Math.round(d?.cal)} kcal</div>
+        <div><span style={{ color: '#c9cfe0' }}>actual:</span> {Math.round(d?.cal)} kcal</div>
         <div><span style={{ color: T.gold }}>14d mean:</span> {Math.round(d?.mean)} kcal</div>
         <div><span style={{ color: T.green }}>±1.5 σ:</span> {Math.round(d?.stdDev)} kcal</div>
       </div>
@@ -590,11 +590,11 @@ function ConsistencyChart({ entries, height, large, showDates, T }) {
           <Area type="monotone" dataKey="upper" stroke="none" fill="url(#bandGrad)" legendType="none" dot={false} connectNulls />
           <Area type="monotone" dataKey="lower" stroke="none" fill={T.bg} legendType="none" dot={false} connectNulls />
           <Line name="14d mean" type="monotone" dataKey="mean" stroke={T.gold} strokeWidth={large ? 2.5 : 2} dot={false} connectNulls />
-          <Scatter name="daily intake" dataKey="cal" fill={T.blue} opacity={0.4} r={large ? 4 : 3} />
+          <Scatter name="daily intake" dataKey="cal" fill={T.chartBlue} opacity={0.4} r={large ? 4 : 3} />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blue }}>●</span> daily intake</span>
+        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue }}>●</span> daily intake</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.gold }}>—</span> 14d rolling mean</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.green }}>▬</span> ±1.5 σ band (consistency width)</span>
       </div>
@@ -654,10 +654,9 @@ function BfProjections({ entries, result, recentResult, recentWeeks, unit, T }) 
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, marginBottom: 20, overflow: 'hidden' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', background: 'none', border: 'none', padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT_MONO }}
+        style={{ width: '100%', background: 'none', border: 'none', padding: '8px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, fontFamily: FONT_MONO }}
       >
-        <span style={{ fontSize: 10, letterSpacing: '.12em', color: T.textSec, textTransform: 'uppercase' }}>Body Composition Projections</span>
-        <span style={{ fontSize: 11, color: T.textFaint, marginLeft: 'auto' }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontSize: 11, color: T.textFaint }}>{open ? '▲ collapse' : '▼ expand'}</span>
       </button>
 
       {open && (
@@ -857,6 +856,8 @@ export default function App() {
         .import-action-btn { transition: all .15s; }
         .import-action-btn:hover { border-color: ${T.blue} !important; color: ${T.blueSoft} !important; background: ${T.btnActive} !important; }
         .import-action-btn:disabled:hover { border-color: ${T.btnBorder} !important; color: ${T.textLabel} !important; background: none !important; }
+        .import-data-btn { transition: all .15s; }
+        .import-data-btn:hover:not(:disabled) { filter: brightness(0.8); background: ${T.green}33 !important; }
       `}</style>
 
       <div style={{ maxWidth: 1300, margin: '0 auto' }}>
@@ -946,27 +947,27 @@ export default function App() {
 
               const widget = (label, value, valueUnit, sub, accent) => (
                 <div style={CARD_STYLE(accent, false, T)}>
-                  <div style={{ fontSize: 11, letterSpacing: '.08em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: 11, letterSpacing: '.08em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 4, fontWeight: 700 }}>{label}</div>
                   <div style={{ fontSize: 26, fontFamily: FONT_NUMERIC, fontWeight: 900, color: accent, lineHeight: 1.2 }}>
                     {value ?? '—'} <span style={{ fontSize: 13, fontWeight: 400, color: T.textMuted }}>{value != null ? valueUnit : ''}</span>
                   </div>
-                  {sub && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>{sub}</div>}
+                  {sub && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3, opacity: 0.6 }}>{sub}</div>}
                 </div>
               );
 
               const tdeeWidget = (value, ci, accent) => (
                 <div style={CARD_STYLE(accent, false, T)}>
-                  <div style={{ fontSize: 11, letterSpacing: '.08em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>TDEE</div>
+                  <div style={{ fontSize: 11, letterSpacing: '.08em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 4, fontWeight: 700 }}>TDEE</div>
                   <div style={{ fontSize: 26, fontFamily: FONT_NUMERIC, fontWeight: 900, color: accent, letterSpacing: '.02em', lineHeight: 1.2 }}>
                     {formatThousands(value, unit)} <span style={{ fontSize: 13, fontWeight: 400, color: T.textMuted }}>kcal</span>
                   </div>
-                  <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>±{formatThousands(ci, unit)} kcal (95% CI)</div>
+                  <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3, opacity: 0.6 }}>±{formatThousands(ci, unit)} kcal (95% CI)</div>
                 </div>
               );
 
               return (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: 12, marginBottom: 20 }}>
                     <div style={CARD_STYLE(BLUE, true, T)}>
                       {(() => {
                         const fullDays = entries.length;
@@ -1087,6 +1088,12 @@ export default function App() {
               );
             })()}
 
+            {/* ── Analysis section ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: T.border }} />
+              <div style={{ fontSize: 11, letterSpacing: '.15em', color: T.textMuted, textTransform: 'uppercase', fontFamily: FONT_MONO, whiteSpace: 'nowrap' }}>Analysis</div>
+              <div style={{ flex: 1, height: 1, background: T.border }} />
+            </div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
               {TABS.map(([id, label]) => (
                 <button key={id} style={TAB_STYLE(tab === id, T)} onClick={() => setTab(id)}>{label}</button>
@@ -1109,9 +1116,13 @@ export default function App() {
               {renderChart(tab, inlineHeights[tab], false)}
             </div>
 
-            <div style={{ marginTop: 20 }}>
-              <BfProjections entries={entries} result={result} recentResult={recentResult} recentWeeks={recentWeeks} unit={unit} T={T} />
+            {/* ── Body Composition Projections section ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 24, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: T.border }} />
+              <div style={{ fontSize: 11, letterSpacing: '.15em', color: T.textMuted, textTransform: 'uppercase', fontFamily: FONT_MONO, whiteSpace: 'nowrap' }}>Body Composition Projections</div>
+              <div style={{ flex: 1, height: 1, background: T.border }} />
             </div>
+            <BfProjections entries={entries} result={result} recentResult={recentResult} recentWeeks={recentWeeks} unit={unit} T={T} />
 
             <div style={{ marginTop: 4, fontSize: 11, color: T.textFaint, lineHeight: 1.7 }}>
               Method: linear regression on all weight datapoints → TDEE = avg calories − (slope × {unit === 'kg' ? '7,700' : '3,500'} kcal/{unit}).

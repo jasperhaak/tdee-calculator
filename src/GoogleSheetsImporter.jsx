@@ -188,9 +188,16 @@ export default function GoogleSheetsImporter({ onData, T }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleReset} style={STYLE.btn(false)}>Back</button>
-          <button onClick={handleImport} disabled={missingRoles.length > 0}
-            style={{ ...STYLE.btn(missingRoles.length === 0), flex: 1, opacity: missingRoles.length > 0 ? 0.5 : 1, cursor: missingRoles.length > 0 ? 'not-allowed' : 'pointer' }}>
+          <button className="import-action-btn" onClick={handleReset} style={STYLE.btn(false)}>Back</button>
+          <button className="import-data-btn" onClick={handleImport} disabled={missingRoles.length > 0}
+            style={{
+              background: missingRoles.length === 0 ? T.green + '22' : 'none',
+              border: `1px solid ${missingRoles.length === 0 ? T.green : T.btnBorder}`,
+              color: missingRoles.length === 0 ? T.green : T.textLabel,
+              flex: 1, padding: '6px 14px', borderRadius: 4, cursor: missingRoles.length > 0 ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', fontSize: 11, letterSpacing: '.08em',
+              opacity: missingRoles.length > 0 ? 0.5 : 1, transition: 'all .15s',
+            }}>
             Import Data
           </button>
         </div>
