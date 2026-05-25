@@ -43,7 +43,7 @@ const THEMES = {
     btnActive: '#e0e8ff', btnBorder: '#c8d0e0', scrollTrack: '#f0f2f5', scrollThumb: '#c0c6d4',
     overlay: '#000000aa',
     // Chart
-    chartBlue: '#1e5fd7', grid: '#c0c0c0',
+    chartBlue: '#2b6ae0', grid: '#c0c0c0',
   },
 };
 
