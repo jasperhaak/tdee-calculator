@@ -110,6 +110,161 @@ export function analyze(entries, unit) {
   return { tdee, tdeeCI95, avgCal, weightChangePerDay: reg.slope, reg, combined, kcalPerUnit };
 }
 
+// ── Weighted regression (exponentially more weight to recent data) ────────────
+export function weightedLinReg(xs, ys) {
+  const n = xs.length;
+  // Exponential weights: older data ~0.1, recent data ~1.0
+  const weights = xs.map((_, i) => Math.exp((i - n + 1) / (n * 0.3)));
+  
+  const sw   = weights.reduce((a, b) => a + b, 0);
+  const swx  = weights.reduce((a, w, i) => a + w * xs[i], 0);
+  const swy  = weights.reduce((a, w, i) => a + w * ys[i], 0);
+  const swxx = weights.reduce((a, w, i) => a + w * xs[i] * xs[i], 0);
+  const swxy = weights.reduce((a, w, i) => a + w * xs[i] * ys[i], 0);
+  
+  const slope = (sw * swxy - swx * swy) / (sw * swxx - swx * swx);
+  const intercept = (swy - slope * swx) / sw;
+  
+  const ssres = ys.reduce((a, y, i) => a + weights[i] * (y - (slope * xs[i] + intercept)) ** 2, 0);
+  const meanY = swy / sw;
+  const sstot = ys.reduce((a, y, i) => a + weights[i] * (y - meanY) ** 2, 0);
+  const r2 = sstot === 0 ? 1 : 1 - ssres / sstot;
+  const se = Math.sqrt((ssres / Math.max(n - 2, 1)) / (sw * swxx - swx * swx));
+  
+  return { slope, intercept, r2, se, n };
+}
+
+// ── LOWESS-based analysis (adaptive smoothing for slope) ────────────────────
+export function analyzeLowess(entries, unit) {
+  if (entries.length < 5) return null;
+  const kcalPerUnit = unit === 'kg' ? 7700 : 3500;
+
+  const xs = entries.map(e => e.relDay);
+  const ys = entries.map(e => e.wt);
+  
+  // Apply LOWESS smoothing to weight
+  const smoothedYs = lowess(xs, ys, 0.4);
+  
+  // Calculate slope from smoothed curve
+  const reg = linReg(xs, smoothedYs);
+
+  const avgCal = entries.reduce((a, e) => a + e.cal, 0) / entries.length;
+  const tdee = avgCal - reg.slope * kcalPerUnit;
+  
+  // Estimate SE from residuals of smoothed fit
+  const ssres = smoothedYs.reduce((a, y, i) => a + (y - (reg.slope * xs[i] + reg.intercept)) ** 2, 0);
+  const se = Math.sqrt((ssres / Math.max(entries.length - 2, 1)) / xs.reduce((a, x, i, arr) => a + (x - arr.reduce((b, c) => b + c, 0) / arr.length) ** 2, 0));
+  const tdeeCI95 = 1.96 * se * kcalPerUnit;
+
+  // EWA-smoothed weight for rolling calculations
+  const smoothed = ewaSmooth(entries, 0.15);
+
+  // Rolling 14-day TDEE — raw endpoints (noisy)
+  const rollingRaw = [];
+  for (let i = 13; i < entries.length; i++) {
+    const w = entries.slice(i - 13, i + 1);
+    const wChange = w[w.length - 1].wt - w[0].wt;
+    const days = w[w.length - 1].relDay - w[0].relDay;
+    if (days < 1) continue;
+    const avgC = w.reduce((a, e) => a + e.cal, 0) / w.length;
+    rollingRaw.push({
+      day: w[w.length - 1].relDay,
+      label: w[w.length - 1].label,
+      tdeeRaw: Math.round(avgC - (wChange / days) * kcalPerUnit),
+    });
+  }
+
+  // Rolling 14-day TDEE — EWA endpoints (smooth)
+  const ewaRolling = [];
+  for (let i = 13; i < smoothed.length; i++) {
+    const w = smoothed.slice(i - 13, i + 1);
+    const wChange = w[w.length - 1].ewaWt - w[0].ewaWt;
+    const days = w[w.length - 1].relDay - w[0].relDay;
+    if (days < 1) continue;
+    const avgC = w.reduce((a, e) => a + e.cal, 0) / w.length;
+    ewaRolling.push({
+      day: w[w.length - 1].relDay,
+      label: w[w.length - 1].label,
+      tdeeEwa: Math.round(avgC - (wChange / days) * kcalPerUnit),
+    });
+  }
+
+  // LOWESS over EWA rolling → drift trend
+  const lwXs = ewaRolling.map(r => r.day);
+  const lwYs = ewaRolling.map(r => r.tdeeEwa);
+  const lwSmooth = lowess(lwXs, lwYs, 0.4);
+  const smoothedTDEE = ewaRolling.map((r, i) => ({ ...r, tdeeDrift: Math.round(lwSmooth[i]) }));
+
+  // Merge raw + EWA + drift by day
+  const dayMap = {};
+  rollingRaw.forEach(r  => { dayMap[r.day] = { ...dayMap[r.day], day: r.day, label: r.label, tdeeRaw: r.tdeeRaw }; });
+  smoothedTDEE.forEach(r => { dayMap[r.day] = { ...dayMap[r.day], day: r.day, label: r.label, tdeeEwa: r.tdeeEwa, tdeeDrift: r.tdeeDrift }; });
+  const combined = Object.values(dayMap).sort((a, b) => a.day - b.day);
+
+  return { tdee, tdeeCI95, avgCal, weightChangePerDay: reg.slope, reg, combined, kcalPerUnit, method: 'lowess' };
+}
+
+// ── Weighted regression analysis (more weight to recent data) ────────────────
+export function analyzeWeightedRegression(entries, unit) {
+  if (entries.length < 5) return null;
+  const kcalPerUnit = unit === 'kg' ? 7700 : 3500;
+
+  const xs = entries.map(e => e.relDay);
+  const ys = entries.map(e => e.wt);
+  const reg = weightedLinReg(xs, ys);
+
+  const avgCal = entries.reduce((a, e) => a + e.cal, 0) / entries.length;
+  const tdee = avgCal - reg.slope * kcalPerUnit;
+  const tdeeCI95 = 1.96 * reg.se * kcalPerUnit;
+
+  // EWA-smoothed weight
+  const smoothed = ewaSmooth(entries, 0.15);
+
+  // Rolling 14-day TDEE — raw endpoints (noisy)
+  const rollingRaw = [];
+  for (let i = 13; i < entries.length; i++) {
+    const w = entries.slice(i - 13, i + 1);
+    const wChange = w[w.length - 1].wt - w[0].wt;
+    const days = w[w.length - 1].relDay - w[0].relDay;
+    if (days < 1) continue;
+    const avgC = w.reduce((a, e) => a + e.cal, 0) / w.length;
+    rollingRaw.push({
+      day: w[w.length - 1].relDay,
+      label: w[w.length - 1].label,
+      tdeeRaw: Math.round(avgC - (wChange / days) * kcalPerUnit),
+    });
+  }
+
+  // Rolling 14-day TDEE — EWA endpoints (smooth)
+  const ewaRolling = [];
+  for (let i = 13; i < smoothed.length; i++) {
+    const w = smoothed.slice(i - 13, i + 1);
+    const wChange = w[w.length - 1].ewaWt - w[0].ewaWt;
+    const days = w[w.length - 1].relDay - w[0].relDay;
+    if (days < 1) continue;
+    const avgC = w.reduce((a, e) => a + e.cal, 0) / w.length;
+    ewaRolling.push({
+      day: w[w.length - 1].relDay,
+      label: w[w.length - 1].label,
+      tdeeEwa: Math.round(avgC - (wChange / days) * kcalPerUnit),
+    });
+  }
+
+  // LOWESS over EWA rolling → drift trend
+  const lwXs = ewaRolling.map(r => r.day);
+  const lwYs = ewaRolling.map(r => r.tdeeEwa);
+  const lwSmooth = lowess(lwXs, lwYs, 0.4);
+  const smoothedTDEE = ewaRolling.map((r, i) => ({ ...r, tdeeDrift: Math.round(lwSmooth[i]) }));
+
+  // Merge raw + EWA + drift by day
+  const dayMap = {};
+  rollingRaw.forEach(r  => { dayMap[r.day] = { ...dayMap[r.day], day: r.day, label: r.label, tdeeRaw: r.tdeeRaw }; });
+  smoothedTDEE.forEach(r => { dayMap[r.day] = { ...dayMap[r.day], day: r.day, label: r.label, tdeeEwa: r.tdeeEwa, tdeeDrift: r.tdeeDrift }; });
+  const combined = Object.values(dayMap).sort((a, b) => a.day - b.day);
+
+  return { tdee, tdeeCI95, avgCal, weightChangePerDay: reg.slope, reg, combined, kcalPerUnit, method: 'weighted' };
+}
+
 // ── Rolling consistency: mean & std dev bands on calorie intake ──────────────
 export function rollingConsistency(entries, window = 14) {
   const result = [];

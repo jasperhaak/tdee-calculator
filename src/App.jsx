@@ -3,7 +3,7 @@ import {
   ComposedChart, Line, Bar, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Area,
 } from 'recharts';
-import { analyze, linReg, rollingConsistency } from './analysis.js';
+import { analyze, analyzeLowess, analyzeWeightedRegression, linReg, rollingConsistency } from './analysis.js';
 import CsvImporter from './CsvImporter.jsx';
 import GoogleSheetsImporter from './GoogleSheetsImporter.jsx';
 import html2canvas from 'html2canvas';
@@ -150,7 +150,7 @@ function WeightChart({ data, entries, height, large, showDates, T }) {
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={40} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} opacity={0.5} r={large ? 4 : 3} />
+          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} r={large ? 4 : 3} />
           <Line name="trend" type="monotone" dataKey="trend" stroke={T.coral} strokeWidth={2} dot={false} strokeDasharray="4 2" />
         </ComposedChart>
       </ResponsiveContainer>
@@ -185,13 +185,13 @@ function TdeeChart({ data, entries, result, recentResult, recentWeeks, height, l
             <ReferenceLine y={Math.round(recentResult.tdee)} stroke={T.green} strokeDasharray="4 2" strokeWidth={1.5}
               label={{ value: `${recentWeeks}w: ${Math.round(recentResult.tdee)}`, fill: T.green, fontSize: fs - 1, position: 'insideBottomRight' }} />
           )}
-          <Line name="raw 14d"      type="monotone" dataKey="tdeeRaw"    stroke={T.chartBlue + '33'} strokeWidth={large ? 1.5 : 1}   dot={false} connectNulls />
+          <Line name="raw 14d"      type="monotone" dataKey="tdeeRaw"    stroke={T.chartBlue} strokeWidth={large ? 1.5 : 1}   dot={false} connectNulls />
           <Line name="EWA-smoothed" type="monotone" dataKey="tdeeEwa"    stroke={T.blueSoft}   strokeWidth={large ? 2 : 1.5}   dot={false} connectNulls />
           <Line name="drift trend"  type="monotone" dataKey="tdeeDrift"  stroke={T.green}   strokeWidth={large ? 3 : 2.5}   dot={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue + '44' }}>—</span> raw 14d (noisy)</span>
+        <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.chartBlue }}>—</span> raw 14d (noisy)</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.blueSoft }}>—</span> EWA-smoothed</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.green }}>—</span> drift trend (LOWESS)</span>
         <span style={{ fontSize: fs - 1, color: T.textMuted }}><span style={{ color: T.coral }}>- -</span> full-period TDEE</span>
@@ -246,15 +246,15 @@ function MaCloudChart({ data, entries, unit, height, large, showDates, T }) {
         <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: showDates ? 8 : 4 }}>
           <defs>
             <linearGradient id="cloudGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={T.chartBlue} stopOpacity={0.18} />
-              <stop offset="100%" stopColor={T.chartBlue} stopOpacity={0.04} />
+              <stop offset="0%" stopColor={T.chartBlue} stopOpacity={1} />
+              <stop offset="100%" stopColor={T.chartBlue} stopOpacity={1} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={T.grid} />
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={40} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} opacity={0.2} r={large ? 3 : 2} />
+          <Scatter name="weight" dataKey="weight" fill={T.chartBlue} r={large ? 3 : 2} />
           <Area type="monotone" dataKey="cloudHigh" stroke="none" fill="url(#cloudGrad)" legendType="none" dot={false} connectNulls />
           <Area type="monotone" dataKey="cloudLow"  stroke="none" fill={T.bg}            legendType="none" dot={false} connectNulls />
           <Line name="ma7"  type="monotone" dataKey="ma7"  stroke={T.green} strokeWidth={large ? 2.5 : 2} dot={false} connectNulls />
@@ -271,7 +271,7 @@ function MaCloudChart({ data, entries, unit, height, large, showDates, T }) {
           <XAxis dataKey="day" tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} {...xProps} />
           <YAxis tick={{ fill: T.textMuted, fontSize: fs }} tickLine={false} domain={['auto', 'auto']} width={46} />
           <Tooltip content={<CustomTooltip T={T} />} />
-          <Bar  dataKey="cal"      fill={T.chartBlue} opacity={0.10} name="daily kcal" />
+          <Bar  dataKey="cal"      fill={T.chartBlue} name="daily kcal" />
           <Line name="calAvg7"  type="monotone" dataKey="calAvg7"  stroke={T.blueSoft} strokeWidth={large ? 2 : 1.5} dot={false} connectNulls />
           <Line name="calAvg21" type="monotone" dataKey="calAvg21" stroke={T.gold} strokeWidth={large ? 2 : 1.5} dot={false} strokeDasharray="5 3" connectNulls />
         </ComposedChart>
@@ -380,7 +380,7 @@ function CalIntakeChart({ entries, result, unit, height, large, T }) {
               label={{ value: `TDEE≈${scatterReg.zeroCal}`, fill: T.gold + 'aa', fontSize: fs - 1, position: 'top' }} />
           )}
           <Tooltip content={<ScatterTooltip />} />
-          <Scatter data={scatterData} dataKey="wtChange" fill={T.chartBlue} opacity={0.5} r={large ? 4 : 3} />
+          <Scatter data={scatterData} dataKey="wtChange" fill={T.chartBlue} r={large ? 4 : 3} />
           {scatterReg && (
             <Line data={scatterReg.lineData} type="linear" dataKey="regLine" stroke={T.coral} strokeWidth={2} dot={false} legendType="none" />
           )}
@@ -590,7 +590,7 @@ function ConsistencyChart({ entries, height, large, showDates, T }) {
           <Area type="monotone" dataKey="upper" stroke="none" fill="url(#bandGrad)" legendType="none" dot={false} connectNulls />
           <Area type="monotone" dataKey="lower" stroke="none" fill={T.bg} legendType="none" dot={false} connectNulls />
           <Line name="14d mean" type="monotone" dataKey="mean" stroke={T.gold} strokeWidth={large ? 2.5 : 2} dot={false} connectNulls />
-          <Scatter name="daily intake" dataKey="cal" fill={T.chartBlue} opacity={0.4} r={large ? 4 : 3} />
+          <Scatter name="daily intake" dataKey="cal" fill={T.chartBlue} r={large ? 4 : 3} />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
@@ -768,11 +768,22 @@ export default function App() {
   const [theme, setTheme]                 = useState('light');
   const [importMethod, setImportMethod]   = useState('sheets');
   const [snapshotting, setSnapshotting]   = useState(false);
+  const [tdeeMethod, setTdeeMethod]       = useState('linreg'); // 'linreg', 'lowess', 'weighted'
   const snapshotRef = useRef(null);
 
   const T = THEMES[theme];
 
-  const result = useMemo(() => entries ? analyze(entries, unit) : null, [entries, unit]);
+  const result = useMemo(() => {
+    if (!entries) return null;
+    switch (tdeeMethod) {
+      case 'lowess':
+        return analyzeLowess(entries, unit);
+      case 'weighted':
+        return analyzeWeightedRegression(entries, unit);
+      default: // 'linreg'
+        return analyze(entries, unit);
+    }
+  }, [entries, unit, tdeeMethod]);
 
   const recentEntries = useMemo(() => {
     if (!entries?.length) return [];
@@ -967,7 +978,7 @@ export default function App() {
 
               return (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: 12, marginBottom: 20 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2.4fr 0.45fr 2.4fr 0.45fr', gap: 8, marginBottom: 20 }}>
                     <div style={CARD_STYLE(BLUE, true, T)}>
                       {(() => {
                         const fullDays = entries.length;
@@ -1010,6 +1021,26 @@ export default function App() {
                       </div>
                     </div>
 
+                    <div style={CARD_STYLE(BLUE, true, T)}>
+                      <div style={{ fontSize: 11, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Method</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {[['linreg', 'LinReg'], ['lowess', 'LOWESS'], ['weighted', 'Wtd']].map(([key, label]) => (
+                          <button key={key} onClick={() => setTdeeMethod(key)} style={{
+                            background: tdeeMethod === key ? T.btnActive : 'none',
+                            border: `1px solid ${tdeeMethod === key ? T.blue : T.btnBorder}`,
+                            color: tdeeMethod === key ? T.blue : T.textMuted,
+                            padding: '4px 5px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 8,
+                            whiteSpace: 'nowrap',
+                            transition: 'all .15s',
+                          }} title={
+                            key === 'linreg' ? 'Linear regression (default)' :
+                            key === 'lowess' ? 'LOWESS adaptive smoothing' :
+                            'Exponentially weighted to recent data'
+                          }>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div style={CARD_STYLE(GREEN, true, T)}>
                       <div style={{ fontSize: 11, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 10 }}>
                         SELECTED PERIOD · {recentWeeks}w · {recentEntries.length} days
@@ -1049,36 +1080,37 @@ export default function App() {
                     </div>
 
                     <div style={CARD_STYLE(GREEN, true, T)}>
-                      <div style={{ fontSize: 11, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 10 }}>Window selector</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 11, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Window</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {[4, 6, 8, 10].map(w => (
                           <button key={w} onClick={() => { setRecentWeeks(w); setWindowMode('preset'); }} style={{
                             background: windowMode === 'preset' && recentWeeks === w ? T.btnActive : 'none',
                             border: `1px solid ${windowMode === 'preset' && recentWeeks === w ? GREEN : T.btnBorder}`,
                             color: windowMode === 'preset' && recentWeeks === w ? GREEN : T.textMuted,
-                            padding: '6px 8px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 10,
+                            padding: '4px 5px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 8,
                             whiteSpace: 'nowrap',
+                            transition: 'all .15s',
                           }}>{w}w</button>
                         ))}
-                        <div style={{ display: 'flex', gap: 2 }}>
+                        <div style={{ display: 'flex', gap: 1, marginTop: 1 }}>
                           <button onClick={() => { setCustomWeeks(w => Math.max(2, w - 1)); setRecentWeeks(w => Math.max(2, w - 1)); setWindowMode('custom'); }} style={{
                             background: windowMode === 'custom' ? T.btnActive : 'none',
                             border: `1px solid ${windowMode === 'custom' ? GREEN : T.btnBorder}`,
                             color: windowMode === 'custom' ? GREEN : T.textMuted,
-                            flex: 1, padding: '4px 4px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 10,
+                            flex: 1, padding: '3px 2px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 8,
                           }}>−</button>
                           <button onClick={() => { setRecentWeeks(customWeeks); setWindowMode('custom'); }} style={{
                             background: windowMode === 'custom' ? T.btnActive : 'none',
                             border: `1px solid ${windowMode === 'custom' ? GREEN : T.btnBorder}`,
                             color: windowMode === 'custom' ? GREEN : T.textMuted,
-                            flex: 1.2, padding: '4px 4px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 10,
+                            flex: 1.2, padding: '3px 2px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 8,
                             whiteSpace: 'nowrap',
                           }}>{customWeeks}w</button>
                           <button onClick={() => { setCustomWeeks(w => Math.min(52, w + 1)); setRecentWeeks(w => Math.min(52, w + 1)); setWindowMode('custom'); }} style={{
                             background: windowMode === 'custom' ? T.btnActive : 'none',
                             border: `1px solid ${windowMode === 'custom' ? GREEN : T.btnBorder}`,
                             color: windowMode === 'custom' ? GREEN : T.textMuted,
-                            flex: 1, padding: '4px 4px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 10,
+                            flex: 1, padding: '3px 2px', borderRadius: 3, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: 8,
                           }}>+</button>
                         </div>
                       </div>
@@ -1087,6 +1119,30 @@ export default function App() {
                 </>
               );
             })()}
+
+            {/* ── Method explanations ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2.4fr 0.45fr 2.4fr 0.45fr', gap: 8, marginBottom: 20 }}>
+              <div style={{ gridColumn: '1 / 3', background: T.cardInner, border: `1px solid ${T.border}`, borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>Full Period Calculation</div>
+                <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+                  {(() => {
+                    const explanations = {
+                      linreg: 'Linear Regression: Fits a straight line through all weight points equally. Conservative but statistically robust. Best for long-term trends.',
+                      lowess: 'LOWESS: Locally weighted smoother that captures early steep losses and metabolic adaptation. Balances noise filtering with phase responsiveness.',
+                      weighted: 'Weighted Regression: Exponentially emphasizes recent data. Reflects your current metabolic state better.',
+                    };
+                    return `${explanations[tdeeMethod]} Formula: TDEE = avg calories − (slope × ${unit === 'kg' ? '7,700' : '3,500'} kcal/${unit})`;
+                  })()}
+                </div>
+              </div>
+
+              <div style={{ gridColumn: '3 / 5', background: T.cardInner, border: `1px solid ${T.border}`, borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, letterSpacing: '.1em', color: T.textMuted, textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>Rolling Period</div>
+                <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.6 }}>
+                  Selected period uses the same {tdeeMethod === 'linreg' ? 'linear regression' : tdeeMethod === 'lowess' ? 'LOWESS' : 'weighted'} method on your most recent {recentWeeks} weeks of data. This shows whether your TDEE has changed as your body adapts or your intake adjusts.
+                </div>
+              </div>
+            </div>
 
             {/* ── Analysis section ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -1123,11 +1179,6 @@ export default function App() {
               <div style={{ flex: 1, height: 1, background: T.border }} />
             </div>
             <BfProjections entries={entries} result={result} recentResult={recentResult} recentWeeks={recentWeeks} unit={unit} T={T} />
-
-            <div style={{ marginTop: 4, fontSize: 11, color: T.textFaint, lineHeight: 1.7 }}>
-              Method: linear regression on all weight datapoints → TDEE = avg calories − (slope × {unit === 'kg' ? '7,700' : '3,500'} kcal/{unit}).
-              MA cloud: 7-day and 21-day simple moving averages. Calorie scatter: next-day weight change vs intake; zero-crossing = independent TDEE estimate.
-            </div>
           </>
         )}
       </div>
